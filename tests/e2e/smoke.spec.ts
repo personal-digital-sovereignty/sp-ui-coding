@@ -4,8 +4,9 @@ test.describe('sp-ui-coding', () => {
 		await page.goto('/');
 		await expect(page.locator('body')).toBeVisible();
 	});
-	test('coding placeholder visible', async ({ page }) => {
+	test('monaco editor visible', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.getByText(/coming soon/i)).toBeVisible();
+		// Monaco editor container is a div with class 'monaco-editor'
+		await expect(page.locator('.monaco-editor')).toBeVisible();
 	});
 });
