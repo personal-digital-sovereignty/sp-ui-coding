@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FileCode, FolderTree, ChevronRight, ChevronDown } from 'lucide-svelte';
+	import FileTreeItem from './FileTreeItem.svelte';
 
 	interface FileNode {
 		name: string;
@@ -44,7 +45,7 @@
 	{#if expandedDirs.has(node.path) && node.children}
 		<div class="ml-2">
 			{#each node.children as child}
-				<FileTreeItem {child} {expandedDirs} {activeFile} {onopen} />
+				<FileTreeItem node={child} {expandedDirs} {activeFile} {onopen} />
 			{/each}
 		</div>
 	{/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import loader from '@monaco-editor/loader';
-	import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
+	import type * as Monaco from 'monaco-editor';
 
 	let {
 		value = $bindable(
@@ -18,7 +18,7 @@
 	onMount(async () => {
 		monacoInstance = await loader.init();
 
-		editor = monacoInstance.editor.create(editorContainer, {
+		editor = monacoInstance!.editor.create(editorContainer, {
 			value,
 			language,
 			theme,

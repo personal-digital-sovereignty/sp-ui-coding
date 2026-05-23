@@ -57,7 +57,7 @@
 	// ========================================================================
 	async function loadFileTree() {
 		try {
-			const res = await fetch(`${CODING_API}/fs/tree`);
+			const res = await fetch(`${CODING_API}/workspace`);
 			if (res.ok) {
 				fileTree = await res.json();
 			}
@@ -235,35 +235,12 @@
 		};
 	}
 
-	// ========================================================================
-	// Render file tree recursively
-	// ========================================================================
-	function renderNode(node: FileNode, depth: number): string {
-		const indent = '  '.repeat(depth);
-		const isExpanded = expandedDirs.has(node.path);
-		const isActive = activeFile === node.path;
 
-		if (node.kind === 'directory') {
-			return `${indent}<div class="flex items-center gap-1 px-2 py-1 text-sm text-slate-400 hover:bg-white/5 rounded cursor-pointer transition-colors"
-                onclick={() => openFile(JSON.parse('__NODE__'))}">
-                ${isExpanded ? '<ChevronDown size={14} />' : '<ChevronRight size={14} />'}
-                <FolderTree size={14} class="text-slate-500" />
-                <span class="truncate font-bold">${node.name}</span>
-            </div>
-            ${isExpanded && node.children ? node.children.map((c) => renderNode(c, depth + 1)).join('\n') : ''}`;
-		}
-
-		return `${indent}<div class="flex items-center gap-2 px-6 py-1.5 text-sm transition-colors ${isActive ? 'bg-indigo-500/10 text-indigo-400 border-r-2 border-indigo-500' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}"
-            onclick={() => openFile(JSON.parse('__NODE__'))}">
-            <FileCode size={14} class="${isActive ? 'text-indigo-400' : 'text-slate-500'}" />
-            <span class="truncate">${node.name}</span>
-        </div>`;
-	}
 
 	// ========================================================================
 	// Lifecycle
 	// ========================================================================
-	onMount(() => {
+	$effect(() => {
 		loadFileTree();
 	});
 
