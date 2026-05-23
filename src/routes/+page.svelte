@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { logger } from '@sp/ui-core/logger';
+
     import FileTreeItem from "$lib/components/FileTreeItem.svelte";
     import MonacoEditor from "$lib/components/MonacoEditor.svelte";
     import { API_BASE_URL } from "@sp/ui-core/config";
@@ -60,7 +62,7 @@
                 fileTree = await res.json();
             }
         } catch (err) {
-            console.error("Failed to load file tree:", err);
+            logger.error("Failed to load file tree:", err);
         }
     }
 
@@ -85,7 +87,7 @@
                 code = data.content;
             }
         } catch (err) {
-            console.error("Failed to read file:", err);
+            logger.error("Failed to read file:", err);
         }
     }
 
@@ -102,7 +104,7 @@
                 body: JSON.stringify({ path: activeFile, content: code }),
             });
         } catch (err) {
-            console.error(`✘ Save error: ${err}`);
+            logger.error(`✘ Save error: ${err}`);
         } finally {
             isSaving = false;
         }
@@ -121,7 +123,7 @@
                 await loadFileTree();
             }
         } catch (err) {
-            console.error("Failed to delete file:", err);
+            logger.error("Failed to delete file:", err);
         }
     }
 
@@ -138,7 +140,7 @@
                 await loadFileTree();
             }
         } catch (err) {
-            console.error("Failed to create file:", err);
+            logger.error("Failed to create file:", err);
         }
     }
 
