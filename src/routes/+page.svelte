@@ -1,7 +1,11 @@
 <script lang="ts">
+    import FileTreeItem from "$lib/components/FileTreeItem.svelte";
     import MonacoEditor from "$lib/components/MonacoEditor.svelte";
     import { API_BASE_URL } from "@sp/ui-core/config";
     import { globalState, toggleSidebar } from "@sp/ui-core/state";
+    import { Terminal as XTerm } from "@xterm/xterm";
+    import { FitAddon } from "@xterm/addon-fit";
+    import "@xterm/xterm/css/xterm.css";
     import {
         Code2,
         FolderTree,
@@ -43,8 +47,6 @@
     let fileTree = $state<FileNode[]>([]);
     let expandedDirs = $state<Set<string>>(new Set());
     let terminalWs: WebSocket | null = null;
-    let terminalOutput = $state("");
-    let terminalInput = $state("");
 
     const CODING_API = `${API_BASE_URL}/v1/coding`;
 
@@ -99,13 +101,8 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ path: activeFile, content: code }),
             });
-            if (res.ok) {
-                appendTerminal("✔ File saved successfully\n");
-            } else {
-                appendTerminal("✘ Failed to save file\n");
-            }
         } catch (err) {
-            appendTerminal(`✘ Save error: ${err}\n`);
+            console.error(`✘ Save error: ${err}`);
         } finally {
             isSaving = false;
         }
@@ -180,49 +177,60 @@
     }
 
     // ========================================================================
-    // Terminal — WebSocket connection
+    // Terminal — xterm.js + WebSocket
     // ========================================================================
-    function appendTerminal(text: string) {
-        terminalOutput += text;
-    }
-
-    function connectTerminal() {
-        const wsProtocol =
-            window.location.protocol === "https:" ? "wss:" : "ws:";
+    function initTerminal(node: HTMLElement) {
+        const xterm = new XTerm({
+            theme: {
+                background: "#0d1117",
+                foreground: "#c9d1d9",
+                cursor: "#58a6ff"
+            },
+            fontFamily: 'monospace',
+            fontSize: 13,
+        });
+        const fitAddon = new FitAddon();
+        xterm.loadAddon(fitAddon);
+        xterm.open(node);
+        
+        setTimeout(() => fitAddon.fit(), 10);
+        
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsHost = window.location.host;
-        // Terminal WS connects directly to sp-service port (38001)
-        const wsUrl = `${wsProtocol}//${wsHost}/v1/coding/terminal/ws`;
-
-        terminalWs = new WebSocket(wsUrl);
-
+        terminalWs = new WebSocket(`${wsProtocol}//${wsHost}/v1/coding/terminal/ws`);
+        
         terminalWs.onopen = () => {
-            appendTerminal("🖥️  Terminal connected\n");
+            fitAddon.fit();
+            terminalWs?.send(JSON.stringify({ type: "resize", cols: xterm.cols, rows: xterm.rows }));
         };
-
+        
         terminalWs.onmessage = (event) => {
-            appendTerminal(event.data);
+            xterm.write(event.data);
         };
+        
+        xterm.onData((data) => {
+            if (terminalWs?.readyState === WebSocket.OPEN) {
+                terminalWs.send(JSON.stringify({ type: "input", data }));
+            }
+        });
 
-        terminalWs.onclose = () => {
-            appendTerminal("🔌 Terminal disconnected\n");
+        const resizeObserver = new ResizeObserver(() => {
+            try {
+                fitAddon.fit();
+                if (terminalWs?.readyState === WebSocket.OPEN) {
+                    terminalWs.send(JSON.stringify({ type: "resize", cols: xterm.cols, rows: xterm.rows }));
+                }
+            } catch (e) {}
+        });
+        resizeObserver.observe(node);
+
+        return {
+            destroy() {
+                resizeObserver.disconnect();
+                xterm.dispose();
+                terminalWs?.close();
+            }
         };
-
-        terminalWs.onerror = () => {
-            appendTerminal(
-                "⚠️  Terminal connection failed — check sp-service is running\n",
-            );
-        };
-    }
-
-    function sendTerminalCommand() {
-        if (
-            terminalWs &&
-            terminalWs.readyState === WebSocket.OPEN &&
-            terminalInput
-        ) {
-            terminalWs.send(terminalInput + "\n");
-            terminalInput = "";
-        }
     }
 
     // ========================================================================
@@ -255,7 +263,6 @@
     // ========================================================================
     onMount(() => {
         loadFileTree();
-        connectTerminal();
     });
 
     onDestroy(() => {
@@ -303,7 +310,7 @@
     </aside>
 
     <!-- Side Panel (Real File Explorer) -->
-    {#if $globalState.isSidebarOpen}
+    {#if globalState.isSidebarOpen}
         <aside
             class="w-64 bg-[#0d1117] border-r border-slate-800/50 flex flex-col animate-in slide-in-from-left duration-300"
         >
@@ -328,7 +335,7 @@
                         {node}
                         {expandedDirs}
                         {activeFile}
-                        on:open={(e) => openFile(e.detail)}
+                        onopen={openFile}
                     />
                 {/each}
             </div>
@@ -355,11 +362,8 @@
             <div class="ml-auto flex items-center px-4 gap-4">
                 <button
                     onclick={() => {
-                        appendTerminal(
-                            `▶ Running ${activeFile || "untitled"}...\n`,
-                        );
-                        if (terminalWs) {
-                            terminalWs.send("npm run dev\n");
+                        if (terminalWs?.readyState === WebSocket.OPEN) {
+                            terminalWs.send(JSON.stringify({ type: "input", data: "npm run dev\r" }));
                         }
                     }}
                     class="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-bold transition-all active:scale-95"
@@ -419,23 +423,8 @@
                         <X size={14} />
                     </button>
                 </header>
-                <div
-                    class="flex-1 p-4 font-mono text-[13px] overflow-y-auto custom-scrollbar whitespace-pre-wrap"
-                >
-                    {terminalOutput}<span class="animate-pulse">_</span>
-                </div>
-                <div
-                    class="flex items-center px-4 py-2 bg-[#090c10] border-t border-slate-800/30"
-                >
-                    <span class="text-emerald-500 mr-2">➜</span>
-                    <input
-                        bind:value={terminalInput}
-                        onkeydown={(e) => {
-                            if (e.key === "Enter") sendTerminalCommand();
-                        }}
-                        class="flex-1 bg-transparent text-white font-mono text-sm outline-none"
-                        placeholder="Type command..."
-                    />
+                <div class="flex-1 w-full h-full p-2 relative">
+                    <div use:initTerminal class="absolute inset-0 p-2"></div>
                 </div>
             </div>
         {/if}

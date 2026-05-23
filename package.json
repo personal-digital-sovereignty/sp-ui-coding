@@ -56,6 +56,8 @@
 		"@tiptap/pm": "^3.20.4",
 		"@tiptap/starter-kit": "^3.20.4",
 		"@types/js-yaml": "^4.0.9",
+		"@xterm/addon-fit": "^0.11.0",
+		"@xterm/xterm": "^6.0.0",
 		"3d-force-graph": "^1.80.0",
 		"d3": "^7.9.0",
 		"dompurify": "^3.3.3",
@@ -73,5 +75,5 @@
 	"overrides": {
 		"devalue": "5.8.1"
 	},
-	"description": "Sovereign Pair \u2014 Coder Ecosystem Micro-Frontend"
+	"description": "Sovereign Pair — Coder Ecosystem Micro-Frontend"
 }
