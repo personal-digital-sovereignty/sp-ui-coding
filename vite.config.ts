@@ -15,25 +15,25 @@ export default defineConfig({
 			name: 'sp_ui_coding',
 			filename: 'remoteEntry.js',
 			exposes: {
-				'./CodingPage': './src/routes/+page.svelte'
+				'./CodingPage': './src/routes/+page.svelte',
 			},
-			shared: ['svelte']
-		})
+			shared: ['svelte'],
+		}),
 	],
 	server: {
 		port: 5178,
 		strictPort: true,
-		cors: true
+		cors: true,
 	},
 	preview: {
 		port: 5178,
 		strictPort: true,
-		cors: true
+		cors: true,
 	},
 	build: {
-		target: 'esnext'
+		target: 'esnext',
 	},
 	define: {
-		__APP_VERSION__: JSON.stringify(pkg.version)
-	}
+		__APP_VERSION__: JSON.stringify(pkg.version),
+	},
 });
